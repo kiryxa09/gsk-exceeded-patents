@@ -85,7 +85,7 @@ if ($searchQuery) {
     $closedName = mb_strtolower($variety['Closed']);
     if (
       strpos($kindName, $loweredQuery) !== false ||
-      (!is_numeric($loweredQuery) && strpos($varietyName, $loweredQuery) !== false) ||
+      (is_numeric($loweredQuery) ? ($varietyName === $loweredQuery) !== false : strpos($varietyName, $loweredQuery) !== false) ||
       (!is_numeric($loweredQuery) && strpos($ownersName, $loweredQuery) !== false) ||
       ($patentName === $loweredQuery) !== false ||
       ($closedName === $loweredQuery) !== false
@@ -105,7 +105,6 @@ if (isset($_POST['refreshButton'])) {
   $totalPages = ceil($totalvarieties / $varietiesPerPage);
   $filtered = false;
 }
-
 
 $conn->close();
 ?>
@@ -205,7 +204,7 @@ $conn->close();
 
     .patents__form__button {
       appearance: none;
-      background-color: #FAFBFC;
+      background-color: #4B75B4;
       border: 1px solid rgba(27, 31, 35, 0.15);
       border-radius: 6px;
       box-shadow: rgba(27, 31, 35, 0.04) 0 1px 0, rgba(255, 255, 255, 0.25) 0 1px 0 inset;
@@ -304,6 +303,14 @@ $conn->close();
       .patents__pagination {
         margin-top: 8px;
       }
+
+      .patents__table__header:last-child {
+        display: none;
+      }
+
+      .patents__table__cell:last-child {
+        display: none;
+      }
     }
   </style>
   <meta charset="UTF-8">
@@ -312,38 +319,13 @@ $conn->close();
 
 <body>
   <div class="content">
-        <div class="patents__forms">
+    <div class="patents__forms">
       <form method="GET" action="" class="patents__form patents__form__search">
         <label class="patents__form__label" for="patents__searchInput">Поиск:</label>
         <input class="patents__form__input" id="patents__searchInput" name="search" placeholder="Введите запрос" list="patents__searchOptions" value="<?php echo is_array($searchQuery) ? implode("\n", $searchQuery) : $searchQuery; ?>">
         <datalist class="patents__form__datalist" id="patents__searchOptions">
-        <?php
-        $selectOptions = [];
-        $properties = ['Kind', 'Name', 'Owners'];
-
-        foreach ($dataArray as $variety) {
-          foreach ($properties as $property) {
-            $propertyName = $variety[$property];
-            if ($property === 'Owners') {
-              $owners = explode(';', $propertyName);
-              foreach ($owners as $owner) {
-                $ownerName = str_replace("'", '', trim($owner));
-                if (!in_array($ownerName, $selectOptions)) {
-                  $selectOptions[] = $ownerName;
-                  echo "<option value=\"$ownerName\">$ownerName</option>";
-                }
-              }
-            } else {
-              if (!in_array($propertyName, $selectOptions)) {
-                $selectOptions[] = $propertyName;
-                echo "<option value=\"$propertyName\">$propertyName</option>";
-              }
-            }
-          }
-        }
-        ?>
         </datalist>
-        <button class="patents__form__button" type="submit">&#128270;</button>
+        <button class="patents__form__button" type="submit"><img src="https://gossortrf.ru/local/templates/.default/images/icon_search.svg" alt="Поиск" /></button>
       </form>
 
 
@@ -381,7 +363,10 @@ $conn->close();
     echo '</table>';
     if ($filtered) {
       echo '<ul class="pagination patents__pagination">';
-      for ($i = $page - 5; $i <= $page + 5 && $i <= $totalPages; $i++) {
+      if ($page > 4){
+        echo '<li><a class="patents__pagination__link" href="?page=1">1</a></li>';
+      }
+      for ($i = $page - 3; $i <= $page + 3 && $i <= $totalPages; $i++) {
         if ($i > 0) {
           $isActivePage = ($i == $page);
           $queryParam = '&search=' . $searchQuery;
@@ -391,7 +376,7 @@ $conn->close();
             :
             '<li><a class="patents__pagination__link" href="?page=' . $i . $queryParam . '">' . $i . '</a></li>');
 
-          if ($i == $page + 5 && $i < $totalPages) {
+          if ($i == $page + 3 && $i < $totalPages) {
             echo "...";
             echo '<li><a class="patents__pagination__link" href="?page=' . $totalPages . $queryParam . '">' . $totalPages . '</a></li>';
           }
@@ -400,7 +385,10 @@ $conn->close();
       echo '</ul>';
     } else {
       echo '<ul class="pagination patents__pagination">';
-      for ($i = $page - 5; $i <= $page + 5 && $i <= $totalPages; $i++) {
+      if ($page > 4){
+        echo '<li><a class="patents__pagination__link" href="?page=1">1</a></li>';
+      }
+      for ($i = $page - 3; $i <= $page + 3 && $i <= $totalPages; $i++) {
         if ($i > 0) {
           if ($i == $page) {
             echo '<li><a class="patents__pagination__link pagination__link_inactive">' . $i . '</a></li>';
@@ -408,7 +396,7 @@ $conn->close();
             echo '<li><a class="patents__pagination__link" href="?page=' . $i . '">' . $i . '</a></li>';
           }
         }
-        if ($i == $page + 5 && $i < $totalPages) {
+        if ($i == $page + 3 && $i < $totalPages) {
           echo "...";
           echo '<li><a class="patents__pagination__link" href="?page=' . $totalPages . '">' . $totalPages . '</a></li>';
         }
@@ -417,10 +405,37 @@ $conn->close();
     ?>
   </div>
   <script>
-    const selectOptions = <?php echo json_encode($selectOptions); ?>;
+    function getSelectOptions(dataArray) {
+      const options = new Set();
+      const properties = ['Kind', 'Name', 'Owners'];
+
+      dataArray.forEach(variety => {
+        properties.forEach(property => {
+          const propertyName = variety[property];
+          if (property === 'Owners') {
+            const owners = propertyName.split(';');
+            owners.forEach(owner => {
+              const ownerName = owner.trim().replace(/'/g, '');
+              options.add(ownerName);
+            });
+          } else {
+            options.add(propertyName);
+          }
+        });
+      });
+      
+      return Array.from(options);
+    }
+    
     const query = <?php echo isset($loweredQuery) ? json_encode(strval($searchQuery)) : "''"; ?>;
   </script>
   <script src="index.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const selectOptions = getSelectOptions(<?php echo json_encode($dataArray); ?>);
+      handleSearchInput(selectOptions);
+    });
+  </script>
 </body>
 
 </html>
