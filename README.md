@@ -1,6 +1,6 @@
 # gossort-php-table
 
-[![Page Preview](https://github.com/kiryxa09/gossort-php-table/blob/main/Page_Preview.png)](https://gossortrf.ru/)
+[![Page Preview](https://github.com/kiryxa09/gossort-php-table/blob/main/Page_Preview.png)](https://gossortrf.ru/activity/patenty-utrativshie-silu/)
 
 
 ## Страница с патентами
@@ -26,8 +26,8 @@
 Основной файл для этой страницы - это PHP файл, который содержит несколько функций и переменных, управляющих отображением и взаимодействием на странице. На странице реализована:
 
 1. Пагинация
-2. Фильтр по культурам
-3. Фильтр по сортам
+2. Фильтр по всем полям
+3. Подсказки по полям со строчными данными
 
 ## Контактная информация
 
